@@ -1,12 +1,13 @@
 #include "rbfm.h"
 
 RecordBasedFileManager* RecordBasedFileManager::_rbf_manager = 0;
+PagedFileManager* RecordBasedFileManager::_pf_manager = 0;
 
 RecordBasedFileManager* RecordBasedFileManager::instance()
 {
     if(!_rbf_manager)
         _rbf_manager = new RecordBasedFileManager();
-
+	
     return _rbf_manager;
 }
 
@@ -19,7 +20,7 @@ RecordBasedFileManager::~RecordBasedFileManager()
 }
 
 RC RecordBasedFileManager::createFile(const string &fileName) {
-    return -1;
+	return _pf_manager->createFile(fileName);
 }
 
 RC RecordBasedFileManager::destroyFile(const string &fileName) {

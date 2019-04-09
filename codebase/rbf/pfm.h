@@ -8,7 +8,15 @@ typedef char byte;
 #define PAGE_SIZE 4096
 #include <string>
 #include <climits>
+#include <fstream> 
+#include <string>
+#include <unistd.h>
 using namespace std;
+
+#define SUCCESS 0
+#define FILE_EXISTS_ALREADY 1
+#define FILE_DNE 2
+
 
 class FileHandle;
 
@@ -38,6 +46,7 @@ public:
 	unsigned readPageCounter;
 	unsigned writePageCounter;
 	unsigned appendPageCounter;
+	FILE* fd;
 	
     FileHandle();                                                    	// Default constructor
     ~FileHandle();                                                   	// Destructor
@@ -47,6 +56,11 @@ public:
     RC appendPage(const void *data);                                    // Append a specific page
     unsigned getNumberOfPages();                                        // Get the number of pages in the file
     RC collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount);  // Put the current counter values into variables
+
+	// add the methods to the class
+	FILE* getFileHandler();
+	void setFileHandler(FILE* f);
 }; 
+
 
 #endif

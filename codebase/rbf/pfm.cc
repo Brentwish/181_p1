@@ -20,28 +20,27 @@ PagedFileManager::~PagedFileManager()
 {
 }
 
+// return if the file exists
+bool checkFile(const string &fileName) {
+	return ( access( fileName.c_str(), F_OK ) != -1 );
+}
 
 RC PagedFileManager::createFile(const string &fileName)
 {
-    return -1;
+    // make sure the file does not exist beforehand
+    if (checkFile(fileName) ) return 1;
+    FILE* fp = fopen(fileName.c_str(), "wb+");
+    //FileHandle.setFileHandler(fp);
+    fclose(fp);
+    return 0;
 }
 
 
-//This method destroys the paged file whose name is fileName. The file should already exist.
 RC PagedFileManager::destroyFile(const string &fileName)
 {
-    //File doesn't exist
-    if (access( fileName.c_str(), F_OK ) == -1) {
-      return -1;
-    }
-
-    if (remove(fileName.c_str()) != 0) {
-      perror("Couldn't delete file");
-      return -1;
-    } else {
-      printf("Deleted file %s\n", fileName.c_str());
-      return 1;
-    }
+    // if file DNE 
+    if (!checkFile(fileName) ) return 2;    
+    return remove(fileName.c_str());
 }
 
 
@@ -64,6 +63,13 @@ FileHandle::FileHandle()
 	appendPageCounter = 0;
 }
 
+FILE* FileHandle::getFileHandler() {
+	return this->fd;
+}
+
+void FileHandle::setFileHandler(FILE* f) {
+	this->fd = f;
+}
 
 FileHandle::~FileHandle()
 {
