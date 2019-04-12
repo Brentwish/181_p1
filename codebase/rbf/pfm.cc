@@ -43,16 +43,31 @@ RC PagedFileManager::destroyFile(const string &fileName)
     return remove(fileName.c_str());
 }
 
-
+// open the file and set the fileHandler to it 
 RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
 {
-    return -1;
+    //check if the file exists 
+    if (!checkFile(fileName) ) return 2;
+
+    //check if the file handle has a file open
+    if (fileHandle.getFileHandler() != NULL) return 3;
+
+    FILE* fp = fopen(fileName.c_str(), "wb+");
+
+    fileHandle.setFileHandler(fp);
+    return 0;
 }
 
 
 RC PagedFileManager::closeFile(FileHandle &fileHandle)
 {
-    return -1;
+    // get the file from the fileHandle
+    FILE* fp = fileHandle.fd;
+
+    // set the new fd for the filehandler to be null
+    fileHandle.setFileHandler(NULL);
+    fclose(fp);
+    return 0;
 }
 
 
@@ -96,7 +111,7 @@ RC FileHandle::appendPage(const void *data)
 
 unsigned FileHandle::getNumberOfPages()
 {
-    return -1;
+    return 0;
 }
 
 
