@@ -50,9 +50,9 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
     if (!checkFile(fileName) ) return 2;
 
     //check if the file handle has a file open
-    if (fileHandle.getFileHandler() != NULL) return 3;
+    // if (fileHandle.getFileHandler() != NULL) return 3;
 
-    FILE* fp = fopen(fileName.c_str(), "wb+");
+    FILE* fp = fopen(fileName.c_str(), "wrb+");
 
     fileHandle.setFileHandler(fp);
     return 0;
@@ -93,7 +93,16 @@ FileHandle::~FileHandle()
 
 RC FileHandle::readPage(PageNum pageNum, void *data)
 {
-    return -1;
+    FILE* fp = getFileHandler(); // get the file handler
+    
+    //set the position in the stream
+    fseek(fp, PAGE_SIZE * pageNum - 1, SEEK_SET);
+    
+    // copy the bits into data 
+    memcpy(data, (void*) SEEK_CUR, PAGE_SIZE);
+    this->readPageCounter = this->readPageCounter + 1;
+    return 0;
+
 }
 
 
@@ -117,5 +126,9 @@ unsigned FileHandle::getNumberOfPages()
 
 RC FileHandle::collectCounterValues(unsigned &readPageCount, unsigned &writePageCount, unsigned &appendPageCount)
 {
-	return -1;
+	readPageCount = this->readPageCounter;
+	writePageCount = this->writePageCounter;
+	appendPageCount = this->appendPageCounter;
+
+	return 0;
 }
