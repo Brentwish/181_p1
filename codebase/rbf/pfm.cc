@@ -52,7 +52,7 @@ RC PagedFileManager::openFile(const string &fileName, FileHandle &fileHandle)
     //check if the file handle has a file open
     // if (fileHandle.getFileHandler() != NULL) return 3;
 
-    FILE* fp = fopen(fileName.c_str(), "wrb+");
+    FILE* fp = fopen(fileName.c_str(), "rb+");
 
     fileHandle.setFileHandler(fp);
     return 0;
@@ -98,10 +98,11 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
     FILE* fp = getFileHandler(); // get the file handler
     
     //set the position in the stream
-    fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
-    
+    // fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
+    fseek(fp, 0, SEEK_SET);
     // copy the bits into data 
-    if (PAGE_SIZE == fread(data, PAGE_SIZE, 1, fp) ) {		
+    int rBytes = fread(data, 1, PAGE_SIZE, fp);
+    if (PAGE_SIZE ==  rBytes) {		
 		this->readPageCounter = this->readPageCounter + 1;
 		return 0;
 	}
@@ -134,16 +135,18 @@ RC FileHandle::writePage(PageNum pageNum, const void *data)
 RC FileHandle::appendPage(const void *data)
 {
     // get the filestream pointer
-    FILE* fp = getFileHandler();
+    FILE* fp = this->getFileHandler();
+    
     
     // get to the end of the file first 
-    fseek(fp, 0, SEEK_END);
-
+    fseek(fd, 0, SEEK_END);
+	
+	int writeData = fwrite(data, 1, PAGE_SIZE, fd);
     // create a new page 
-    if (fwrite(data, 1, PAGE_SIZE, fp) == PAGE_SIZE){
+    if (writeData == PAGE_SIZE){
 		fflush(fp);
 		this->appendPageCounter = this->appendPageCounter + 1;
-		return 0;
+		return SUCCESS;
 	}
 	return FH_WRITE_FAIL;
     
@@ -154,7 +157,7 @@ RC FileHandle::appendPage(const void *data)
 unsigned FileHandle::getNumberOfPages()
 {
 	// get the filestream pointer
-    FILE* fp = getFileHandler();
+    FILE* fp = this->getFileHandler();
 	
     struct stat st;
     
