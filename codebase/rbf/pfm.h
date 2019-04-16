@@ -11,11 +11,17 @@ typedef char byte;
 #include <fstream> 
 #include <string>
 #include <unistd.h>
+#include <cstring>
+#include <sys/stat.h>
+
+
 using namespace std;
 
 #define SUCCESS 0
 #define FILE_EXISTS_ALREADY 1
 #define FILE_DNE 2
+#define FH_HAS_OPEN_FILE 3
+#define FH_WRITE_FAIL 4
 
 
 class FileHandle;
