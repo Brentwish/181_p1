@@ -66,7 +66,9 @@ RC PagedFileManager::closeFile(FileHandle &fileHandle)
 
     // set the new fd for the filehandler to be null
     fileHandle.setFileHandler(NULL);
+    fflush(fp);
     fclose(fp);
+    
     return 0;
 }
 
@@ -96,31 +98,70 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
     FILE* fp = getFileHandler(); // get the file handler
     
     //set the position in the stream
-    fseek(fp, PAGE_SIZE * pageNum - 1, SEEK_SET);
+    fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
     
     // copy the bits into data 
-    memcpy(data, (void*) SEEK_CUR, PAGE_SIZE);
-    this->readPageCounter = this->readPageCounter + 1;
-    return 0;
+    if (PAGE_SIZE == fread(data, PAGE_SIZE, 1, fp) ) {		
+		this->readPageCounter = this->readPageCounter + 1;
+		return 0;
+	}
 
 }
 
 
 RC FileHandle::writePage(PageNum pageNum, const void *data)
 {
-    return -1;
+    // get the filestream pointer
+    FILE* fp = getFileHandler();
+
+    // get the filestream pointer to the right spot
+    fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
+
+    // write into the page
+    int bytes = fwrite(data, 1, PAGE_SIZE, fp);
+    
+    // check if the right amount of bytes are read
+    if (bytes == PAGE_SIZE) {
+        fflush(fp);
+        this->writePageCounter = this->writePageCounter + 1;
+        return 0;
+    }
+    return FH_WRITE_FAIL;
+    
 }
 
 
 RC FileHandle::appendPage(const void *data)
 {
-    return -1;
+    // get the filestream pointer
+    FILE* fp = getFileHandler();
+    
+    // get to the end of the file first 
+    fseek(fp, 0, SEEK_END);
+
+    // create a new page 
+    if (fwrite(data, 1, PAGE_SIZE, fp) == PAGE_SIZE){
+		fflush(fp);
+		this->appendPageCounter = this->appendPageCounter + 1;
+		return 0;
+	}
+	return FH_WRITE_FAIL;
+    
+    
 }
 
 
 unsigned FileHandle::getNumberOfPages()
 {
-    return 0;
+	// get the filestream pointer
+    FILE* fp = getFileHandler();
+	
+    struct stat st;
+    
+    if(fstat(fileno(fp), &st) != 0) {
+        return 0;
+    }
+    return st.st_size/PAGE_SIZE;
 }
 
 
