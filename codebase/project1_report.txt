@@ -6,12 +6,68 @@ Other Team Members:
 
 
 2. Internal Record Format
-- Show your record format design and describe how your design satisfies O(1) field access. If not, just mention that you haven't implemented this feature.
+- Show your record format design and describe how your design satisfies O(1)
+  field access. If not, just mention that you haven't implemented this feature.
 - Describe how you store a VarChar field.
+
+  |___________________________________________________|
+  |                                                   |
+  | | f1 | f2 | ... | fK | f | F1 | F2 | ... | FK |   |
+  |___________________________________________________|
+
+  Let K be the number of fields in each record. Each field can be variable
+  length. To get O(1) access to the jth field, we keep a directory of field
+  offsets at the beginning of each slot. The first K bytes of each slot
+  contains offsets to each of the K fields, so to read the jth field, calculate
+  the offset fj = S+j (where S is the offset to the slot) and the value at fj
+  contains the location of field Fj. We'll also keep one extra byte, f, to
+  indicate the end of the last field, since it could be variable length.
+  (Page 332)
+  
+
 
 
 3. Page Format
 - Show your page format design
+
+  |___________________________________________________|
+  | Data                                              |
+  |                                                   |
+  | S1                                                |
+  | | f1 | f2 | ... | fK | f | F1 | F2 | ... | FK |   |
+  |                                                   |
+  | S2                                                |
+  | | f1 | f2 | ... | fK | f | F1 | F2 | ... | FK |   |
+  |                                                   |
+  | S3                                                |
+  | | f1 | f2 | ... | fK | f | F1 | F2 | ... | FK |   |
+  |                                                   |
+  | ...                                               | 
+  |                                                   |
+  | SN                                                |
+  | | f1 | f2 | ... | fK | f | F1 | F2 | ... | FK |   |
+  |                                                   |
+  |___________________________________________________|
+  | Free Space                                        |
+  |                                                   |
+  |___________________________________________________|
+  | Slot Dir                                          |
+  |                                                   |
+  |  | SN | ... | S2 | S1 | N | Offset to Free Space ||
+  |___________________________________________________|
+
+  Data
+    Contains a collection of slots.
+
+  Free Space
+    Shrinks from the slot dir growing up and from the data growing down.
+
+  Slot Dir
+    Each element in the slot directory is an int, so we'll have macros for
+      free_space = PAGE_SIZE - 1
+      num_slots = PAGE_SIZE - 2
+      get_slot(i) = (PAGE_SIZE - 2) - i
+
 
 
 4. Implementation Detail
