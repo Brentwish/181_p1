@@ -96,6 +96,13 @@ int RecordBasedFileManager::getFreeSpace(void *page) {
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
   unsigned int i;
+  int j;
+  struct Attribute attr;
+  int numAttrs = recordDescriptor.size();
+  int nullFieldSize = getNullFieldSize(numAttrs);
+  char nullField[nullFieldSize];
+  memset(nullField, 0, nullFieldSize);
+  memcpy(nullField, (char *) data, nullFieldSize);
   //Get size of record
   int recordSize = getRecordSize(recordDescriptor, data);
   cout << "Record size: " << recordSize << endl;
@@ -129,21 +136,88 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   rid.slotNum = getNumSlots(page) + 1;
   cout << "rid: <" << rid.pageNum << ", " << rid.slotNum << ">\n";
 
+  //write the actual record
+  // | numAttrs | nullBytes | f1 | f2 | .. | fn | f | F1 | F2 | .. | Fn |
+
+  int freeSpaceOffsetVal = getFreeSpaceOffset(page);
+  //offset into *data
+  char *dataOffset = (char*) data + nullFieldSize;
+  //offset to the beginning of freespace
+  char *headerOffset = (char*) page + freeSpaceOffsetVal;
+  char *attrOffset;
+
+  // numAttrs
+  memcpy(headerOffset, &numAttrs, INT_SIZE);
+  headerOffset += INT_SIZE;
+
+  //nullBytes
+  memcpy(headerOffset, data, nullFieldSize);
+  headerOffset += nullFieldSize;
+
+  //f1...fn..f
+  attrOffset = headerOffset + (numAttrs + 1)*INT_SIZE;
+  int sizeofAttrs = 0;
+  for (j = 0; j < numAttrs; j++) {
+    attr = recordDescriptor[j];
+    //The header elements get the total size of the counted attrs as its offset
+    memcpy(headerOffset, &sizeofAttrs, INT_SIZE);
+    headerOffset += INT_SIZE;
+    if (checkIfNull(nullField[j/8], j%8)) {
+      //Null attrs don't count toward sizeofAttrs
+      continue;
+    }
+    //Copy the value at data offset into the attr offset
+    if (attr.type == TypeInt) {
+      int d;
+      memcpy(&d, dataOffset, INT_SIZE);
+      memcpy(attrOffset, &d, INT_SIZE);
+      cout << "int: " << d << endl;
+      dataOffset += INT_SIZE;
+      sizeofAttrs += INT_SIZE;
+    } else if (attr.type == TypeReal) {
+      float d;
+      memcpy(&d, dataOffset, REAL_SIZE);
+      memcpy(attrOffset, &d, REAL_SIZE);
+      cout << "real: " << d << endl;
+      dataOffset += REAL_SIZE;
+      sizeofAttrs += REAL_SIZE;
+    } else if (attr.type == TypeVarChar) {
+      //varchars have an int before the data indicating their size
+      int varLen;
+      char* d;
+      memcpy(&varLen, dataOffset, INT_SIZE);
+      dataOffset += INT_SIZE;
+      memcpy(d, dataOffset, varLen);
+      memcpy(attrOffset, d, varLen);
+      cout << "string: " << d << endl;
+      dataOffset += varLen;
+      sizeofAttrs += varLen;
+    } else {
+      perror("Error in getRecordSize");
+      return -1;
+    }
+  }
+
+
+
   void *newSlotDirOffset = (char*) page + getSlotDirOffset(rid.slotNum);
   void *freeSpaceOffset = (char*) page + FREESPACE_OFFSET;
   void *numSlotsOffset = (char*) page + NUM_SLOTS_OFFSET;
-  int freeSpaceOffsetVal = getFreeSpaceOffset(page);
   int newNumSlots = getNumSlots(page) + 1;
-
   //Add a new slot entry in the directory, set it to the location of free space
   memcpy(newSlotDirOffset, &freeSpaceOffsetVal, INT_SIZE);
+  //Add 1 to the number of slot entries
+  memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
   //Add the new record's size to the free space pointer
   freeSpaceOffsetVal += recordSize;
   memcpy(freeSpaceOffset, &freeSpaceOffsetVal, INT_SIZE);
-  //Add 1 to the number of slot entries
-  memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
 
-  fileHandle.writePage(rid.pageNum, page);
+
+  if (found) {
+    fileHandle.writePage(rid.pageNum, page);
+  } else {
+    fileHandle.appendPage(page);
+  }
 
   free(page);
   return SUCCESS;
