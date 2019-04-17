@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 #include <climits>
+#include <math.h>
+#include <iostream>
 
 #include "../rbf/pfm.h"
 
@@ -133,6 +135,7 @@ protected:
 private:
   static RecordBasedFileManager *_rbf_manager;
   static  PagedFileManager* _pf_manager;
+  int checkIfNull(char c, int n);
 };
 
 #endif
