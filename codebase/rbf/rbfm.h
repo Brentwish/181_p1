@@ -11,6 +11,15 @@
 
 using namespace std;
 
+#define INT_SIZE  4
+#define REAL_SIZE 4
+
+#define SUCCESS   0
+#define ERROR    -1 
+
+#define FREESPACE_OFFSET (PAGE_SIZE - INT_SIZE)
+#define NUM_SLOTS_OFFSET (FREESPACE_OFFSET - INT_SIZE)
+
 // Record ID
 typedef struct
 {
@@ -96,6 +105,7 @@ public:
   //     For Varchar: use 4 bytes to store the length of characters, then store the actual characters.
   //  !!! The same format is used for updateRecord(), the returned data of readRecord(), and readAttribute().
   // For example, refer to the Q6 of Project 1 Environment document.
+  int getFreeSpace(void *page);
   RC insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid);
 
   RC readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data);
@@ -136,6 +146,11 @@ private:
   static RecordBasedFileManager *_rbf_manager;
   static  PagedFileManager* _pf_manager;
   int checkIfNull(char c, int n);
+  int getNullFieldSize(int numAttrs);
+  int getRecordSize(const vector<Attribute> &recordDescriptor, const void *data);
+  int getFreeSpaceOffset(void *page);
+  int getNumSlots(void *page);
+  int getSlotDirOffset(int j);
 };
 
 #endif
