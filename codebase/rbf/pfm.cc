@@ -98,14 +98,16 @@ RC FileHandle::readPage(PageNum pageNum, void *data)
     FILE* fp = getFileHandler(); // get the file handler
     
     //set the position in the stream
-    // fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
-    fseek(fp, 0, SEEK_SET);
+    fseek(fp, PAGE_SIZE * pageNum, SEEK_SET);
+    
     // copy the bits into data 
     int rBytes = fread(data, 1, PAGE_SIZE, fp);
     if (PAGE_SIZE ==  rBytes) {		
 		this->readPageCounter = this->readPageCounter + 1;
 		return 0;
 	}
+
+	return FH_WRITE_FAIL;
 
 }
 
