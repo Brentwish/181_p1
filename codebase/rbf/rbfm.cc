@@ -79,7 +79,8 @@ int RecordBasedFileManager::getRecordSize(const vector<Attribute> &recordDescrip
     }
   }
 
-  return recordSize;
+  int slotEntrySize = INT_SIZE;
+  return recordSize + slotEntrySize;
 }
 
 
@@ -118,7 +119,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       return ERROR;
     }
 
-    if (getFreeSpace(page) >= recordSize + INT_SIZE) {
+    if (getFreeSpace(page) >= recordSize) {
       found = 1;
       break;
     }
@@ -128,7 +129,6 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   //Should i be incremented again?
   if (!found) {
     memset(page, (int) '\0', PAGE_SIZE);
-    fileHandle.appendPage(page);
   }
 
   //Set the rid
@@ -303,6 +303,7 @@ int RecordBasedFileManager::getNumSlots(void *page) {
 int RecordBasedFileManager::getFreeSpaceOffset(void *page) {
   int freeSpaceOffset;
   memcpy(&freeSpaceOffset, (char *) page + FREESPACE_OFFSET, INT_SIZE);
+  cout << "getFreeSpaceOffset = " << freeSpaceOffset << endl;
   return freeSpaceOffset;
 }
 
