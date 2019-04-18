@@ -322,6 +322,7 @@ void RecordBasedFileManager::newFormattedPage (void* page) {
 	//add the slot directory header 
 	//do the free page offset first
 	int slotNum = 0; 
+  memset(page, (int) '\0', PAGE_SIZE);
 	memcpy((char*) page + NUM_SLOTS_OFFSET, &slotNum, INT_SIZE);
 	//make the free page offset at the top of the file
 	int freeSpaceOffset = 0;
