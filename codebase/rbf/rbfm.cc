@@ -118,7 +118,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       return ERROR;
     }
 
-    if (getFreeSpace(page) >= recordSize) {
+    if (getFreeSpace(page) >= recordSize + INT_SIZE) {
       found = 1;
       break;
     }
