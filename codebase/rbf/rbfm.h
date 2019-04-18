@@ -152,6 +152,7 @@ private:
   int getNumSlots(void *page);
   int getSlotDirOffset(int j);
   void newFormattedPage(void* page);
+  void fillData(void* page, const vector<Attribute> &recordDescriptor,const void *data, char *offset, char* recLen);
 };
 
 #endif
