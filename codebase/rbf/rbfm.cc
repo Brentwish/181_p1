@@ -51,9 +51,8 @@ int RecordBasedFileManager::getRecordSize(const vector<Attribute> &recordDescrip
   int recordSize = 0;
   // add | numAttrs | nullBytes | size
   recordSize += sizeof(int) + nullFieldSize;
-  // add | f1 | f2 | .. | fn | f |
-  // why +1? 
-  recordSize += (numAttrs + 1) * sizeof(int);
+  // add | f1 | f2 | .. | fn |
+  recordSize += (numAttrs) * sizeof(int);
 
   //This for loop gets the | F1 | F2 | .. | Fn | size
   for (int i = 0; i < numAttrs; i++) {
@@ -113,6 +112,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   void *page = malloc(PAGE_SIZE);
   memset(page, (int) '\0', PAGE_SIZE);
 
+  //get the right page 
   int found = 0;
   for (i = 0; i < fileHandle.getNumberOfPages(); i++) {
     if (fileHandle.readPage(i, page) != SUCCESS) {
@@ -241,7 +241,37 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
-    return -1;
+    //get the file pointer
+    FILE* fp = fileHandle.getFileHandler();
+
+    //create a new empty page to load page into
+  	void *page = malloc(PAGE_SIZE);
+  	memset(page, (int) '\0', PAGE_SIZE);
+
+    //get the right page
+    int found = 0;
+    int pNum = rid.pageNum;	
+	if (fileHandle.readPage(pNum, page) != SUCCESS) {
+	  perror("RecordBasedFileManager - insertRecord(): failed to readPage");
+	  return ERROR;
+	}
+
+	//get the right slot info
+	char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * INT_SIZE;
+	//get the offset of the record
+	char* recOffset;
+	memcpy(recOffset, slotAddr, INT_SIZE);
+
+
+
+	// need the size to read the whole record in
+	char* recLen;
+	// memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
+	recLen = (char*) page - recOffset;
+
+	free(page);
+
+
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
