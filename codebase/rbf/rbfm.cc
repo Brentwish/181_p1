@@ -246,17 +246,18 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     }
 
     //get the right slot info
-    char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * INT_SIZE;
-    char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * 2 * INT_SIZE; // length and offset
+    // char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - 4 - (rid.slotNum - 1)* 2 * INT_SIZE; // length and offset
+    char* slotAddr = (char* ) getSlotDirOffset(rid.slotNum);
+    getSlotDirLength(rid.slotNum);
     //get the offset of the record
     char* recOffset;
     memcpy(recOffset, slotAddr, INT_SIZE);
 
     // need the size to read the whole record in
-    char* recLen;
+    int recLen = getSlotDirLength(rid.slotNum);
 
-    // memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
-    recLen = (char*) page - recOffset;
+    // memcpy(&recLen, (char*) slotAddr - 4, INT_SIZE);
+    // recLen = (char*) page - recOffset;
 
     // get the record 
     // when we read need to subtract the len of record from the offset 
@@ -383,7 +384,7 @@ void RecordBasedFileManager::newFormattedPage (void* page) {
 void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, char* offset, char* recLen) 
 {
 	// get the size of the record 
-
+	cout << recLen << "\n";
 	// subtract the size of the record to get to the front of the record
 	// char* start = (char* ) page - recLen;
 	// get the null fields 
