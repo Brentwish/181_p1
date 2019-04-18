@@ -51,8 +51,6 @@ int RecordBasedFileManager::getRecordSize(const vector<Attribute> &recordDescrip
   int recordSize = 0;
   // add | numAttrs | nullBytes | size
   recordSize += sizeof(int) + nullFieldSize;
-  // add | f1 | f2 | .. | fn |
-  recordSize += (numAttrs) * sizeof(int);
 
   //This for loop gets the | F1 | F2 | .. | Fn | size
   for (int i = 0; i < numAttrs; i++) {
@@ -77,22 +75,13 @@ int RecordBasedFileManager::getRecordSize(const vector<Attribute> &recordDescrip
       perror("Error in getRecordSize");
       return -1;
     }
+    //Account for the header.
+    //null headers don't exist either.
+    recordSize += INT_SIZE;
   }
 
-  int slotEntrySize = INT_SIZE;
+  int slotEntrySize = 2*INT_SIZE;
   return recordSize + slotEntrySize;
-}
-
-
-int RecordBasedFileManager::getFreeSpace(void *page) {
-  int freeSpace, freeSpaceOffset, numSlots;
-  freeSpaceOffset = getFreeSpaceOffset(page);
-  numSlots = getNumSlots(page);
-  cout << "FreeSpaceOffset: " << freeSpaceOffset << endl;
-  cout << "numSlots: " << numSlots << endl;
-  freeSpace = PAGE_SIZE - ((numSlots + 2) * INT_SIZE) - freeSpaceOffset;
-  cout << "Free Space: " << freeSpace << endl;
-  return freeSpace;
 }
 
 RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const void *data, RID &rid) {
@@ -120,6 +109,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       return ERROR;
     }
 
+    //recordSize currently accounts for the 2 ints that will be added to
+    //the slot directory
     if (getFreeSpace(page) >= recordSize) {
       found = 1;
       break;
@@ -157,7 +148,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   headerOffset += nullFieldSize;
 
   //f1...fn
-  attrOffset = headerOffset + numAttrs*INT_SIZE;
+  attrOffset = headerOffset + (numAttrs-getNumNullBits(nullField))*INT_SIZE;
   int sizeofAttrs = 0;
   for (j = 0; j < numAttrs; j++) {
     attr = recordDescriptor[j];
@@ -226,7 +217,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
   //Add the new record's size to the free space pointer
   //need to remove the extra slot we added in the method
-  freeSpaceOffsetVal += recordSize - INT_SIZE;
+  freeSpaceOffsetVal += recordSize - 2*INT_SIZE;
   memcpy(freeSpaceOffset, &freeSpaceOffsetVal, INT_SIZE);
 
 
@@ -241,35 +232,34 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
-    //get the file pointer
-    FILE* fp = fileHandle.getFileHandler();
-
-    //create a new empty page to load page into
-  	void *page = malloc(PAGE_SIZE);
-  	memset(page, (int) '\0', PAGE_SIZE);
+  //create a new empty page to load page into
+    void *page = malloc(PAGE_SIZE);
+    memset(page, (int) '\0', PAGE_SIZE);
 
     //get the right page
     int found = 0;
     int pNum = rid.pageNum;	
-	if (fileHandle.readPage(pNum, page) != SUCCESS) {
-	  perror("RecordBasedFileManager - insertRecord(): failed to readPage");
-	  return ERROR;
-	}
+    if (fileHandle.readPage(pNum, page) != SUCCESS) {
+      perror("RecordBasedFileManager - insertRecord(): failed to readPage");
+      return ERROR;
+    }
 
-	//get the right slot info
-	char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * INT_SIZE;
-	//get the offset of the record
-	char* recOffset;
-	memcpy(recOffset, slotAddr, INT_SIZE);
+    //get the right slot info
+    char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * INT_SIZE;
+    //get the offset of the record
+    char* recOffset;
+    memcpy(recOffset, slotAddr, INT_SIZE);
 
 
 
-	// need the size to read the whole record in
-	char* recLen;
-	// memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
-	recLen = (char*) page - recOffset;
+	//// need the size to read the whole record in
+	//char* recLen;
+	//// memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
+	//recLen = (char*) page - recOffset;
 
-	free(page);
+	//free(page);
+
+  return 0;
 
 
 }
@@ -334,6 +324,13 @@ int RecordBasedFileManager::checkIfNull(char c, int n) {
     return ((c & mask[n]) != 0);
 }
 
+//For a given page, get the amount of space available
+int RecordBasedFileManager::getFreeSpace(void *page) {
+  int freeSpace = PAGE_SIZE - getSlotDirectorySize(page) - getFreeSpaceOffset(page);
+  cout << "Free Space: " << freeSpace << endl;
+  return freeSpace;
+}
+
 //Calculate the number of null bytes for a number of attributes
 int RecordBasedFileManager::getNullFieldSize(int numAttrs) {
     return ceil((double) numAttrs/8);
@@ -357,12 +354,18 @@ int RecordBasedFileManager::getFreeSpaceOffset(void *page) {
 
 //Calculate relative offset to a given slot dir entry (offset)
 int RecordBasedFileManager::getSlotDirOffset(int j) {
-  return PAGE_SIZE - (2*j + 3)*INT_SIZE;
+  return PAGE_SIZE - (2*j + 1)*INT_SIZE;
 }
 
 //Calculate relative offset to a given slot dir entry (length)
 int RecordBasedFileManager::getSlotDirLength(int j) {
-  return PAGE_SIZE - (2*j + 4)*INT_SIZE;
+  return PAGE_SIZE - (2*j + 2)*INT_SIZE;
+}
+
+int RecordBasedFileManager::getSlotDirectorySize(void* page) {
+  //2*getNumSlots(page) for each (offset, length) pair)
+  //+2 for the free_space offset and num_slots ints
+  return (2*getNumSlots(page) +2)*INT_SIZE;
 }
 
 void RecordBasedFileManager::newFormattedPage (void* page) {
