@@ -151,6 +151,8 @@ private:
   int getFreeSpaceOffset(void *page);
   int getNumSlots(void *page);
   int getSlotDirOffset(int j);
+  int getSlotDirLength(int j);
+  int getSlotDirectorySize(void* page);
   void newFormattedPage(void* page);
 };
 
