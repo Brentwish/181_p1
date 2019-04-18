@@ -423,3 +423,17 @@ void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recor
 
 
 }
+
+int RecordBasedFileManager::countNullBits(char nullField[], int size) {
+  char byte;
+  int numBits = 0;
+  for (int i = 0; i < size; i++) {
+    byte = nullField[i];
+    for (int j = 0; j < 8; j++) {
+      if (checkIfNull(byte, j))
+        numBits += 1;
+    }
+  }
+  cout << "Num Null bits: " << numBits << endl;
+  return numBits;
+}
