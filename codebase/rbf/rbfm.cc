@@ -148,7 +148,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   headerOffset += nullFieldSize;
 
   //f1...fn
-  attrOffset = headerOffset + (numAttrs-getNumNullBits(nullField))*INT_SIZE;
+  attrOffset = headerOffset + (numAttrs-countNullBits(nullField, nullFieldSize))*INT_SIZE;
   int sizeofAttrs = 0;
   for (j = 0; j < numAttrs; j++) {
     attr = recordDescriptor[j];
@@ -381,7 +381,7 @@ void RecordBasedFileManager::newFormattedPage (void* page) {
 	memcpy((char*) page + FREESPACE_OFFSET, &freeSpaceOffset, INT_SIZE);
 }
 
-void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, char* offset, char* recLen) 
+void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, char* offset, int recLen) 
 {
 	// get the size of the record 
 	cout << recLen << "\n";
