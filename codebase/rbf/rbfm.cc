@@ -215,11 +215,13 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
 
   void *newSlotDirOffset = (char*) page + getSlotDirOffset(rid.slotNum);
+  void *newSlotDirLength = (char*) page + getSlotDirLength(rid.slotNum);
   void *freeSpaceOffset = (char*) page + FREESPACE_OFFSET;
   void *numSlotsOffset = (char*) page + NUM_SLOTS_OFFSET;
   int newNumSlots = getNumSlots(page) + 1;
   //Add a new slot entry in the directory, set it to the location of free space
   memcpy(newSlotDirOffset, &freeSpaceOffsetVal, INT_SIZE);
+  memcpy(newSlotDirLength, &recordSize, INT_SIZE);
   //Add 1 to the number of slot entries
   memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
   //Add the new record's size to the free space pointer
@@ -323,9 +325,14 @@ int RecordBasedFileManager::getFreeSpaceOffset(void *page) {
   return freeSpaceOffset;
 }
 
-//Calculate relative offset to a given slot dir entry
+//Calculate relative offset to a given slot dir entry (offset)
 int RecordBasedFileManager::getSlotDirOffset(int j) {
-  return PAGE_SIZE - (j + 2)*INT_SIZE;
+  return PAGE_SIZE - (2*j + 3)*INT_SIZE;
+}
+
+//Calculate relative offset to a given slot dir entry (length)
+int RecordBasedFileManager::getSlotDirLength(int j) {
+  return PAGE_SIZE - (2*j + 4)*INT_SIZE;
 }
 
 void RecordBasedFileManager::newFormattedPage (void* page) {
