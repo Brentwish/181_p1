@@ -185,16 +185,19 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     } else if (attr.type == TypeVarChar) {
       //varchars have an int before the data indicating their size
       int varLen;
-      char* d;
       memcpy(&varLen, dataOffset, INT_SIZE);
       dataOffset += INT_SIZE;
+      cout << "----varLen: " << varLen << endl;
+      char* d = (char*) malloc(varLen+1);
+      memset(d, '\0', varLen+1);
       memcpy(d, dataOffset, varLen);
       memcpy(attrOffset, d, varLen);
       cout << "string: " << d << endl;
       dataOffset += varLen;
       sizeofAttrs += varLen;
+      free(d);
     } else {
-      perror("Error in getRecordSize");
+      perror("Error in insertRecord");
       return -1;
     }
   }
