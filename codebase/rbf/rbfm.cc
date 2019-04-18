@@ -52,6 +52,7 @@ int RecordBasedFileManager::getRecordSize(const vector<Attribute> &recordDescrip
   // add | numAttrs | nullBytes | size
   recordSize += sizeof(int) + nullFieldSize;
   // add | f1 | f2 | .. | fn | f |
+  // why +1? 
   recordSize += (numAttrs + 1) * sizeof(int);
 
   //This for loop gets the | F1 | F2 | .. | Fn | size
@@ -125,10 +126,10 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     }
   }
 
-  //If there were no pages with enough space, create a new one.
+  //If there were no pages with enough space, create a new formatted one.
   //Should i be incremented again?
   if (!found) {
-    memset(page, (int) '\0', PAGE_SIZE);
+    newFormattedPage(page);
   }
 
   //Set the rid
@@ -209,7 +210,8 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   //Add 1 to the number of slot entries
   memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
   //Add the new record's size to the free space pointer
-  freeSpaceOffsetVal += recordSize;
+  //need to remove the extra slot we added in the method
+  freeSpaceOffsetVal += recordSize - INT_SIZE;
   memcpy(freeSpaceOffset, &freeSpaceOffsetVal, INT_SIZE);
 
 
@@ -295,14 +297,15 @@ int RecordBasedFileManager::getNullFieldSize(int numAttrs) {
 //For a given page, return the number of slots.
 int RecordBasedFileManager::getNumSlots(void *page) {
   int numSlots;
-  memcpy(&numSlots, (char *) page + NUM_SLOTS_OFFSET, INT_SIZE);
+  // NUM_SLOTS_OFFSET refers to exact address of it 
+  memcpy(&numSlots, (char *)page + NUM_SLOTS_OFFSET, INT_SIZE);
   return numSlots;
 }
 
 //Return the offset to free space
 int RecordBasedFileManager::getFreeSpaceOffset(void *page) {
   int freeSpaceOffset;
-  memcpy(&freeSpaceOffset, (char *) page + FREESPACE_OFFSET, INT_SIZE);
+  memcpy(&freeSpaceOffset, (char *)page + FREESPACE_OFFSET, INT_SIZE);
   cout << "getFreeSpaceOffset = " << freeSpaceOffset << endl;
   return freeSpaceOffset;
 }
@@ -310,4 +313,14 @@ int RecordBasedFileManager::getFreeSpaceOffset(void *page) {
 //Calculate relative offset to a given slot dir entry
 int RecordBasedFileManager::getSlotDirOffset(int j) {
   return PAGE_SIZE - (j + 2)*INT_SIZE;
+}
+
+void RecordBasedFileManager::newFormattedPage (void* page) {
+	//add the slot directory header 
+	//do the free page offset first
+	int slotNum = 0; 
+	memcpy((char*) page + NUM_SLOTS_OFFSET, &slotNum, INT_SIZE);
+	//make the free page offset at the top of the file
+	int freeSpaceOffset = 0;
+	memcpy((char*) page + FREESPACE_OFFSET, &freeSpaceOffset, INT_SIZE);
 }
