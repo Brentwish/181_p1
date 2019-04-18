@@ -172,6 +172,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       memcpy(attrOffset, &d, INT_SIZE);
       cout << "int: " << d << endl;
       dataOffset += INT_SIZE;
+      attrOffset += INT_SIZE;
       sizeofAttrs += INT_SIZE;
     } else if (attr.type == TypeReal) {
       float d;
@@ -179,6 +180,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       memcpy(attrOffset, &d, REAL_SIZE);
       cout << "real: " << d << endl;
       dataOffset += REAL_SIZE;
+      attrOffset += REAL_SIZE;
       sizeofAttrs += REAL_SIZE;
     } else if (attr.type == TypeVarChar) {
       //varchars have an int before the data indicating their size
@@ -192,6 +194,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       memcpy(attrOffset, d, varLen);
       cout << "string: " << d << endl;
       dataOffset += varLen;
+      attrOffset += varLen;
       sizeofAttrs += varLen;
       free(d);
     } else {
