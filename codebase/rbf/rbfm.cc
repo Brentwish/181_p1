@@ -139,6 +139,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 
   //write the actual record
   // | numAttrs | nullBytes | f1 | f2 | .. | fn | f | F1 | F2 | .. | Fn |
+  int attr_debug[numAttrs+1];
 
   int freeSpaceOffsetVal = getFreeSpaceOffset(page);
   //offset into *data
@@ -162,6 +163,7 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
     attr = recordDescriptor[j];
     //The header elements get the total size of the counted attrs as its offset
     memcpy(headerOffset, &sizeofAttrs, INT_SIZE);
+    attr_debug[j] = sizeofAttrs;
     headerOffset += INT_SIZE;
     if (checkIfNull(nullField[j/8], j%8)) {
       //Null attrs don't count toward sizeofAttrs
@@ -201,6 +203,13 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
       return -1;
     }
   }
+  memcpy(headerOffset, &sizeofAttrs, INT_SIZE);
+  attr_debug[j] = sizeofAttrs;
+
+  for (j = 0; j < numAttrs+1; j++) {
+    cout << "(" << j << ", " << attr_debug[j] << "), ";
+  }
+  cout << endl;
 
 
 
