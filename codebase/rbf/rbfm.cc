@@ -232,36 +232,37 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
 }
 
 RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attribute> &recordDescriptor, const RID &rid, void *data) {
-  //create a new empty page to load page into
+    //get the file pointer
+    FILE* fp = fileHandle.getFileHandler();
+    //create a new empty page to load page into
     void *page = malloc(PAGE_SIZE);
     memset(page, (int) '\0', PAGE_SIZE);
-
     //get the right page
     int found = 0;
-    int pNum = rid.pageNum;	
+    int pNum = rid.pageNum;  
     if (fileHandle.readPage(pNum, page) != SUCCESS) {
-      perror("RecordBasedFileManager - insertRecord(): failed to readPage");
-      return ERROR;
+        perror("RecordBasedFileManager - insertRecord(): failed to readPage");
+        return ERROR;
     }
 
     //get the right slot info
     char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * INT_SIZE;
+    char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - rid.slotNum * 2 * INT_SIZE; // length and offset
     //get the offset of the record
     char* recOffset;
     memcpy(recOffset, slotAddr, INT_SIZE);
 
+    // need the size to read the whole record in
+    char* recLen;
 
+    // memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
+    recLen = (char*) page - recOffset;
 
-	//// need the size to read the whole record in
-	//char* recLen;
-	//// memcpy(&recLen, (char*) slotAddr - INT_SIZE, INT_SIZE);
-	//recLen = (char*) page - recOffset;
+    // get the record 
+    // when we read need to subtract the len of record from the offset 
+    fillData(page, recordDescriptor, data, recOffset, recLen);
 
-	//free(page);
-
-  return 0;
-
-
+    free(page);
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
@@ -377,4 +378,47 @@ void RecordBasedFileManager::newFormattedPage (void* page) {
 	//make the free page offset at the top of the file
 	int freeSpaceOffset = 0;
 	memcpy((char*) page + FREESPACE_OFFSET, &freeSpaceOffset, INT_SIZE);
+}
+
+void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, char* offset, char* recLen) 
+{
+	// get the size of the record 
+
+	// subtract the size of the record to get to the front of the record
+	// char* start = (char* ) page - recLen;
+	// get the null fields 
+
+	// fill the null fields bits in data
+
+	// for field in recordDescriptor
+		// check if field is null
+			// if null 
+				// don't move data offset
+				// move the headeroffset and valueoffset pointer? 
+				// continue
+
+		// if type == TypeInt
+			// write next 4 bytes in data and increase data offset
+			// decrease headeroffset by 4 
+			// decrease valueoffset by 4
+
+		// if type == TypeReal
+			// write next 4 bytes in data and increase data offset
+			// decrease headeroffset by 4
+			// decrease valueoffset by 4
+
+		// if type == TypeVarChar
+			// get the len of the varChar
+			// write len to the next 4 bytes of data and increase data offset by 4
+			// decrease valueoffset by 4
+
+			// copy the varChar from page to data 
+			// increase dataOffset by varCharLen
+			// decrease headerffset by 4
+			// decrease valueoffset by varCharLen
+
+	// should be done?
+
+
+
 }

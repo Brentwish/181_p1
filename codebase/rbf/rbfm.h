@@ -154,6 +154,7 @@ private:
   int getSlotDirLength(int j);
   int getSlotDirectorySize(void* page);
   void newFormattedPage(void* page);
+  void fillData(void* page, const vector<Attribute> &recordDescriptor,const void *data, char *offset, char* recLen);
 };
 
 #endif
