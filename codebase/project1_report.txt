@@ -1,8 +1,8 @@
 1. Basic information
-Team number:
+Team number: 7 
 Student ID of submitter: 
-Student Name of submitter: 
-Other Team Members:
+Student Name of submitter: Jaisal Singh 
+Other Team Members: Mayowa Borisade, Brent Wishart, Ray Zhao 
 
 
 2. Internal Record Format
