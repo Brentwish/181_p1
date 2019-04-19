@@ -290,7 +290,7 @@ RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor
 
 
     struct Attribute A;
-    for(int i=0; i<recordDescriptor.size(); i++) {
+    for(unsigned i=0; i<recordDescriptor.size(); i++) {
         A = recordDescriptor[i];
 
         // check if the record is null 
