@@ -1,7 +1,8 @@
 1. Basic information
 Team number: 7 
-Student ID of submitter: 
-Student Name of submitter: Jaisal Singh  
+Student ID of submitter: 1477888
+Student Name of submitter: Jaisal Singh 
+ 
 Other Team Members: Mayowa Borisade, Brent Wishart, Ray Zhao 
 
 
@@ -76,4 +77,5 @@ Other Team Members: Mayowa Borisade, Brent Wishart, Ray Zhao
 
 5. Other (optional)
 - Freely use this section to tell us about other things related to the project 1 (optional)
+- We didn't store the length of the VarChars but rather used the difference between offsets to get the size of the record 
 
