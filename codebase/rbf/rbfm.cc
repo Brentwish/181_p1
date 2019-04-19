@@ -210,9 +210,10 @@ RC RecordBasedFileManager::insertRecord(FileHandle &fileHandle, const vector<Att
   void *freeSpaceOffset = (char*) page + FREESPACE_OFFSET;
   void *numSlotsOffset = (char*) page + NUM_SLOTS_OFFSET;
   int newNumSlots = getNumSlots(page) + 1;
+  int recSize2 = recordSize - 2 * INT_SIZE;
   //Add a new slot entry in the directory, set it to the location of free space
   memcpy(newSlotDirOffset, &freeSpaceOffsetVal, INT_SIZE);
-  memcpy(newSlotDirLength, &recordSize, INT_SIZE);
+  memcpy(newSlotDirLength, &recSize2, INT_SIZE);
   //Add 1 to the number of slot entries
   memcpy(numSlotsOffset, &newNumSlots, INT_SIZE);
   //Add the new record's size to the free space pointer
@@ -247,15 +248,22 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
 
     //get the right slot info
     // char* slotAddr = (char*) page + NUM_SLOTS_OFFSET - 4 - (rid.slotNum - 1)* 2 * INT_SIZE; // length and offset
-    char* slotAddr = (char* ) getSlotDirOffset(rid.slotNum);
-    getSlotDirLength(rid.slotNum);
+    int slotAddr = getSlotDirOffset(rid.slotNum);
+
     //get the offset of the record
-    char* recOffset;
-    memcpy(recOffset, slotAddr, INT_SIZE);
+    int recOffset;
+    memcpy(&recOffset, (char* ) page + slotAddr, INT_SIZE);
+
+    void *freeSpaceOffset = (char*) page + FREESPACE_OFFSET;
+    int FSO;
+    memcpy(&FSO, freeSpaceOffset, INT_SIZE);
+
 
     // need the size to read the whole record in
-    int recLen = getSlotDirLength(rid.slotNum);
+    int recLenOffset = getSlotDirLength(rid.slotNum);
+    int recLen;
 
+    memcpy(&recLen, (char* ) page + recLenOffset, INT_SIZE);
     // memcpy(&recLen, (char*) slotAddr - 4, INT_SIZE);
     // recLen = (char*) page - recOffset;
 
@@ -264,6 +272,7 @@ RC RecordBasedFileManager::readRecord(FileHandle &fileHandle, const vector<Attri
     fillData(page, recordDescriptor, data, recOffset, recLen);
 
     free(page);
+    return SUCCESS;
 }
 
 RC RecordBasedFileManager::printRecord(const vector<Attribute> &recordDescriptor, const void *data) {
@@ -381,10 +390,64 @@ void RecordBasedFileManager::newFormattedPage (void* page) {
 	memcpy((char*) page + FREESPACE_OFFSET, &freeSpaceOffset, INT_SIZE);
 }
 
-void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, char* offset, int recLen) 
+void RecordBasedFileManager::fillData(void* page, const vector<Attribute> &recordDescriptor,const void* data, int offset, int recLen) 
 {
 	// get the size of the record 
 	cout << recLen << "\n";
+	cout << offset << "\n";
+	int i, numAttrs, leftOffset, rightOffset, fieldSize;
+	struct Attribute attr; 
+
+	char *attrOffset, *headerOffset, *dataOffset;
+
+	headerOffset = (char*) page + offset;
+	// headerOffset +=  offset; 
+	dataOffset = (char*) data; 
+
+	memcpy(&numAttrs, headerOffset, INT_SIZE);
+	headerOffset += INT_SIZE;
+
+	// copy the null bytes into the array
+	int nullFieldSize = getNullFieldSize(numAttrs);
+	char nullField[nullFieldSize];
+	memset(nullField, 0, nullFieldSize);
+	memcpy(nullField, headerOffset, nullFieldSize);
+	headerOffset += nullFieldSize;
+
+	memcpy(dataOffset, nullField, nullFieldSize);
+
+	dataOffset += nullFieldSize;
+
+	attrOffset = (char* )page + offset + INT_SIZE + nullFieldSize + (numAttrs - countNullBits(nullField, nullFieldSize)) * INT_SIZE;
+
+	leftOffset = rightOffset = 0;
+	for (i =0; i < numAttrs; i++) {
+		attr = recordDescriptor[i]; 
+		if (checkIfNull(nullField[i/8], i%8)) {
+			continue;
+		}
+		memcpy(&rightOffset, headerOffset, INT_SIZE);
+		// figure out length of the 
+		if (attr.type == TypeVarChar) {
+			fieldSize = rightOffset - leftOffset;
+			memcpy(dataOffset, &fieldSize, INT_SIZE);
+			dataOffset += INT_SIZE;
+		} else if (attr.type == TypeInt) {
+			fieldSize = INT_SIZE;
+		} else if (attr.type == TypeReal) {
+			fieldSize = INT_SIZE;
+		}
+		else {
+			perror("Error in fillData");
+			// return ERROR;
+		}
+		memcpy(dataOffset, attrOffset, fieldSize);
+		dataOffset += fieldSize;
+		attrOffset += fieldSize;
+
+		leftOffset = rightOffset;
+	}	
+
 	// subtract the size of the record to get to the front of the record
 	// char* start = (char* ) page - recLen;
 	// get the null fields 
